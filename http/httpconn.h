@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <unistd.h>
+#include <atomic>
 
 class HttpConn {
 public:
@@ -16,6 +17,9 @@ public:
     ~HttpConn();
 
     void init(int sockFd, const sockaddr_in& addr);
+
+    size_t read(int* saveErrno);
+    size_t write(int* saveErrno);
 
     void Close();
 
@@ -25,8 +29,7 @@ public:
     const char* GetIP() const;
     sockaddr_in GetAddr() const;
 
-    //static std::atomic<int> userCount;
-    static int userCount;
+    static std::atomic<int> userCount;
     
 private:
     // 文件描述符和IP
@@ -34,6 +37,10 @@ private:
     struct  sockaddr_in addr_;
 
     bool isClose_;
+
+    int iovCnt_;
+    struct iovec iov_[2];
+
 };
 
 

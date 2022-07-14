@@ -2,8 +2,7 @@
 
 using namespace std;
 
-//std::atomic<int> HttpConn::userCount;
-int HttpConn::userCount;
+std::atomic<int> HttpConn::userCount;
 
 HttpConn::HttpConn() { 
     fd_ = -1;
@@ -21,7 +20,7 @@ void HttpConn::init(int fd, const sockaddr_in& addr) {
     addr_ = addr;
     fd_ = fd;
     isClose_ = false;
-    printf("Client[%d](%s:%d) in, userCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
+    printf("Client[%d](%s:%d) in, userCount:%d\n", fd_, GetIP(), GetPort(), (int)userCount);
 }
 
 void HttpConn::Close() {
@@ -29,7 +28,7 @@ void HttpConn::Close() {
         isClose_ = true; 
         userCount--;
         close(fd_);
-        printf("Client[%d](%s:%d) quit, UserCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
+        printf("Client[%d](%s:%d) quit, UserCount:%d\n", fd_, GetIP(), GetPort(), (int)userCount);
     }
 }
 

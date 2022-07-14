@@ -1,16 +1,16 @@
 cmake_minimum_required(VERSION 3.8)
 
 set(This my_webserer)
-project(${This} CXX)
+project(${This} C CXX)
 
 set(cur_dir ${CMAKE_CURRENT_SOURCE_DIR})
 
 # 设置语言标准
-# set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 14)
 
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lpthread -o0")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -o0 -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lpthread -o0")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O0 -pthread -Wall -g")
 
 # 设置版本信息
 set(META_PROJECT_NAME ${This})
@@ -25,7 +25,7 @@ file(WRITE "${cur_dir}/VERSION" "${META_NAME_VERSION}")
 
 
 # 设置输出目录
-set(OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build")
+set(OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/output")
 set(EXECUTABLE_OUTPUT_PATH "${OUTPUT_PATH}/bin/")
 set(LIBRARY_OUTPUT_PATH "${OUTPUT_PATH}/lib/") 
 

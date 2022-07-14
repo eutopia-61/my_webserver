@@ -11,6 +11,7 @@ class Epoller
 {
 public:
     explicit Epoller(int maxEvent = 1024);
+
     ~Epoller();
 
     bool AddFd(int fd, uint32_t events);

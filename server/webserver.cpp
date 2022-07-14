@@ -1,4 +1,5 @@
 #include "webserver.h"
+#include <iostream>
 
 using namespace std;
 
@@ -8,15 +9,18 @@ WebServer::WebServer(
         port_(port), timeoutMS_(timeoutMs), openLinger_(OptLinger), isClose_(false), 
         threadpool_(new ThreadPool(threadNum)), epoller_(new Epoller())
     {   
+        printf("WebServer started\n");
         // 设置资源目录
         srcDir_ = getcwd(nullptr, 256);
         assert(srcDir_);
         strncat(srcDir_, "/resources/", 16);
 
         InitEventMode_(trigMode);
+        printf("InitSocket_\r\n");
         if(!InitSocket_())
             isClose_ = true;
     }
+
 
 WebServer::~WebServer()
 {
@@ -48,15 +52,17 @@ void WebServer::InitEventMode_(int trigMode)
             connEvent_ |= EPOLLET;
             break;
     }
-
 }
 
+/*Epoll事件处理*/
 void WebServer::Start() {
-    int timeMS = -1;     /* epoll wait timeout == -1 无事件将阻塞 */
+    int timeMS = 500;     /* epoll wait timeout == -1 无事件将阻塞 */
     if(!isClose_) 
-        printf("=============== Server Started =================");
+        printf("=============== Server Started =================\n");
     while(!isClose_) {
         int eventCnt = epoller_->Wait(timeMS);
+
+        //printf("eventCnt = %d\n", eventCnt);
 
         for(int i = 0; i < eventCnt; i++) {
             /*处理事件*/
@@ -68,15 +74,23 @@ void WebServer::Start() {
             }
             else if(events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
                 // 对方断开、错误事件
+                printf("断开!\n");
+                assert(users_.count(fd) > 0);
+                CloseConn_(&users_[fd]);
             }
             else if(events & EPOLLIN) {
                 // 读事件
+                printf("test1\n");
+                assert(users_.count(fd) > 0);
+                DealRead_(&users_[fd]);
             }
             else if(events & EPOLLOUT) {
                 // 写事件
+                assert(users_.count(fd) > 0);
+                DealWrite_(&users_[fd]);
             }
             else {
-                printf("unexpected event");
+                printf("unexpected event\n");
             }
         }
     }
@@ -86,22 +100,25 @@ void WebServer::SendError_(int fd, const char* info) {
     assert(fd > 0);
     int ret = send(fd, info, strlen(info), 0);
     if(ret < 0)
-        printf("send error to client[%d] error!", fd);
+        printf("send error to client[%d] error!\n", fd);
 
     close(fd);
 }
 
 void WebServer::CloseConn_(HttpConn* client) {
-
+    assert(client);
+    printf("Client[%d] quit!\n", client->GetFd());
+    epoller_->DelFd(client->GetFd());
+    client->Close();
 }
 
 void WebServer::AddClient_(int fd, sockaddr_in addr) {
     assert(fd >= 0);
     
     users_[fd].init(fd, addr);
-    epoller_->AddFd(fd, EPOLLIN);
+    epoller_->AddFd(fd, EPOLLIN | connEvent_);
     SetFdNonblock(fd);
-    printf("Client[%d] in!", fd);
+    printf("Client[%d] in!\n", users_[fd].GetFd());
 }
 
 void WebServer::DealListen_() {
@@ -112,12 +129,32 @@ void WebServer::DealListen_() {
         if(fd < 0)
             return;
         else if(HttpConn::userCount >= MAX_FD) {
-            SendError_(fd, "Server busy!");
-            printf("Clients is full!");
+            SendError_(fd, "Server busy!\n");
+            printf("Clients is full!\n");
             return ;
         }
         AddClient_(fd, addr);
     } while(listenEvent_ & EPOLLET);
+}
+
+void WebServer::DealRead_(HttpConn* client) {
+    assert(client);
+
+    send(client->GetFd(), "hello!", strlen("hello"), 0);
+    epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLIN);
+
+    printf("read\n");
+}
+
+void WebServer::DealWrite_(HttpConn* client) {
+    assert(client);
+
+    printf("write\n");
+}
+
+void WebServer::OnRead_(HttpConn* client)
+{
+    assert(client);
 }
 
 //创建socket
@@ -125,7 +162,7 @@ bool WebServer::InitSocket_() {
     int ret;
     struct sockaddr_in addr;
     if(port_ > 65535 || port_ < 1024) {
-        printf("Port:%d error!",  port_);
+        printf("Port:%d error!\n",  port_);
         return false;
     }
 
@@ -135,7 +172,7 @@ bool WebServer::InitSocket_() {
     
     listenFd_ = socket(AF_INET, SOCK_STREAM, 0);
     if(listenFd_ < 0) {
-        printf("Create socket error!");
+        printf("Create socket error!\n");
         return false;
     }
 
@@ -149,7 +186,7 @@ bool WebServer::InitSocket_() {
     ret = setsockopt(listenFd_, SOL_SOCKET, SO_LINGER, &optLiger, sizeof(optLiger));
     if(ret < 0) {
         close(listenFd_);
-        printf("Init linger error!");
+        printf("Init linger error!\n");
         return false;
     }
 
@@ -158,27 +195,34 @@ bool WebServer::InitSocket_() {
     int optval = 1;
     ret = setsockopt(listenFd_, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
     if(ret < 0) {
-        printf("set socket setsockopt error !");
+        printf("set socket setsockopt error!\n");
         close(listenFd_);
         return false;
     }
 
     ret = bind(listenFd_, (struct sockaddr *)&addr, sizeof(addr));
     if(ret < 0) {
-        printf("Bind Port:%d error!", port_);
+        printf("Bind Port:%d error!\n", port_);
         close(listenFd_);
         return false;
     }
 
     ret = listen(listenFd_, 6);
     if(ret < 0) {
-        printf("Listen Port:%d error!", port_);
+        printf("Listen Port:%d error!\n", port_);
         close(listenFd_);
         return false;
     }
-
+    
+    ret = epoller_->AddFd(listenFd_, listenEvent_ | EPOLLIN);
+    if(ret == 0) {
+        printf("Add Listen error!\n");
+        close(listenFd_);
+        return false;
+    }
     SetFdNonblock(listenFd_);
-    printf("Server port: %d", port_);
+
+    printf("Server port: %d\n", port_);
     return true;
 }
 
