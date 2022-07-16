@@ -11,6 +11,10 @@
 #include <unistd.h>
 #include <atomic>
 
+#include "../buffer/buffer.h"
+#include "httprequest.h"
+#include "httpresponse.h"
+
 class HttpConn {
 public:
     HttpConn();
@@ -18,8 +22,8 @@ public:
 
     void init(int sockFd, const sockaddr_in& addr);
 
-    size_t read(int* saveErrno);
-    size_t write(int* saveErrno);
+    ssize_t read(int* saveErrno);
+    ssize_t write(int* saveErrno);
 
     void Close();
 
@@ -29,8 +33,20 @@ public:
     const char* GetIP() const;
     sockaddr_in GetAddr() const;
 
+    bool handleHTTPConn(); //定义处理该HTTP连接的接口，主要分为request的解析和response的生成
+
+    /*获取已经写入的数据长度*/
+    int ToWriteBytes() {
+        return iov_[0].iov_len + iov_[1].iov_len;
+    }
+
+    bool IsKeepAlive() const {
+        return request_.IsKeepAlive();
+    }
+
+    static bool isET;
+    static const char* srcDir;
     static std::atomic<int> userCount;
-    
 private:
     // 文件描述符和IP
     int fd_;
@@ -41,6 +57,11 @@ private:
     int iovCnt_;
     struct iovec iov_[2];
 
+    Buffer readBuff_; //读缓冲区
+    Buffer writeBuff_; /*写缓冲区*/
+
+    HttpRequest request_;
+    HttpResponse response_;
 };
 
 

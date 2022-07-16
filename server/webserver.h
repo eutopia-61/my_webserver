@@ -40,8 +40,8 @@ private:
     void SendError_(int fd, const char*info);   //给客户端返回错误消息
     void CloseConn_(HttpConn* client);
 
-    void OnRead_(HttpConn* client);
-    void OnWrite_(HttpConn* client);
+    void OnRead_(HttpConn* client); /*将读的底层实现函数加入到线程池*/ 
+    void OnWrite_(HttpConn* client);    /*将写的底层实现函数加入到线程池*/
     void OnProcess(HttpConn* client);
 
     static const int MAX_FD = 65536;    //最大监听文件描述符

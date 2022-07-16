@@ -21,11 +21,11 @@ public:
 
     void EnsureWriteable(size_t len);   /*保证将数据写入缓存区*/
 
-    const char* Peek() const;   // 获取读位置指针
+    const char* curReadPtr() const;   // 获取读位置指针
     
     /*获取当前写指针*/
-    const char* BeginWriteConst() const;
-    char* BeginWrite();
+    const char* curWritePtrConst() const;
+    char* curWritePtr();
 
     void HasWritten(size_t len);       /*更新写位置*/
     void Retrieve(size_t len);  /*更新读位置*/

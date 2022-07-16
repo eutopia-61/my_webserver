@@ -48,16 +48,17 @@ int main(int argc, char *argv[])
         send(sockfd, sendbuffer, len, 0);
         printf("send %s", sendbuffer);
 
-        len = recv(sockfd, recvbuffer, 1024, 0);
-        if (len < 0)
-        {
-            fprintf(stderr, "recv Error:%s\a\n", strerror(errno));
-        }
-        else if (len > 0)
-        {
-            recvbuffer[len] = 0;
-            printf("recv: %s\n", recvbuffer);
-        }
+        // len = recv(sockfd, recvbuffer, 1024, 0);
+        // if (len < 0)
+        // {
+        //     fprintf(stderr, "recv Error:%s\a\n", strerror(errno));
+        // }
+        // else if (len > 0)
+        // {
+        //     recvbuffer[len] = 0;
+        //     printf("recv: %s\n", recvbuffer);
+        // }
+        sleep(5);
     }
 
     close(sockfd);

@@ -9,7 +9,7 @@ set(cur_dir ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 14)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lpthread -o0")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lpthread -O0 -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O0 -pthread -Wall -g")
 
 # 设置版本信息
@@ -41,18 +41,17 @@ set(LIBRARY_OUTPUT_PATH "${OUTPUT_PATH}/lib/")
 include_directories(
     ${cur_dir}/pool
     ${cur_dir}/server
-    #${cur_dir}/timer
+    ${cur_dir}/buffer
     ${cur_dir}/http
 )
 
 # Add block directories
+add_subdirectory(buffer)
 add_subdirectory(http)
-# add_subdirectory(pool)
 add_subdirectory(server)
-#add_subdirectory(timer)
 
 # 生成可执行文件
 add_executable(server main.cpp)
 
 # 链接库文件
-target_link_libraries(server webserver httpconn)
+target_link_libraries(server webserver httpconn buffer)

@@ -14,18 +14,19 @@ size_t Buffer::PrependableBytes() const {
     return readPos_;
 }
 
-const char* Buffer::Peek() const {
+const char* Buffer::curReadPtr() const {
     return BeginPtr_() + readPos_;
 }
 
 void Buffer::Retrieve(size_t len) {
+    // printf("len = %ld, %ld\n", len, ReadableBytes());
     assert(len <= ReadableBytes());
     readPos_ += len;
 }
 
 void Buffer::RetrieveUntil(const char* end) {
-    assert(Peek() <= end);
-    Retrieve(end - Peek());
+    assert(curReadPtr() <= end);
+    Retrieve(end - curReadPtr());
 }
 
 void Buffer::RetrieveAll() {
@@ -35,16 +36,16 @@ void Buffer::RetrieveAll() {
 }
 
 std::string Buffer::RetrieveAllToStr() {
-    std::string str(Peek(), ReadableBytes());
+    std::string str(curReadPtr(), ReadableBytes());
     RetrieveAll();
     return str;
 }
 
-const char* Buffer::BeginWriteConst() const {
+const char* Buffer::curWritePtrConst() const {
     return BeginPtr_() + writePos_;
 }
 
-char* Buffer::BeginWrite() {
+char* Buffer::curWritePtr() {
     return BeginPtr_() + writePos_;
 }
 
@@ -64,12 +65,12 @@ void Buffer::Append(const void* data, size_t len) {
 void Buffer::Append(const char* str, size_t len) {
     assert(str);
     EnsureWriteable(len);
-    std::copy(str, str + len, BeginWrite());
+    std::copy(str, str + len, curWritePtr());
     HasWritten(len);
 }
 
 void Buffer::Append(const Buffer& buff) {
-    Append(buff.Peek(), buff.ReadableBytes());
+    Append(buff.curReadPtr(), buff.ReadableBytes());
 }
 
 void Buffer::EnsureWriteable(size_t len) {
@@ -89,7 +90,7 @@ ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
     iov[1].iov_base = buff;
     iov[1].iov_len = sizeof(buff);
 
-    const size_t len = readv(fd, iov, 2);
+    const ssize_t len = readv(fd, iov, 2);
     if(len < 0) {
         *saveErrno = errno;
     }
@@ -98,14 +99,14 @@ ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
     }
     else {
         writePos_ = buffer_.size();
-        Append(buff, len - writePos_);
+        Append(buff, len - writeable);
     }
     return len;
 }
 
 ssize_t Buffer::WriteFd(int fd, int* saveErrno) {
     size_t readSize = ReadableBytes();
-    ssize_t len = write(fd, Peek(), readSize);
+    ssize_t len = write(fd, curReadPtr(), readSize);
     if(len < 0) {
         *saveErrno = errno;
         return len;
