@@ -31,9 +31,9 @@ bool HeapTimer::siftdown_(size_t index, size_t n)
     size_t j = i * 2 + 1; /* i的左孩子节点*/
     while (j < n)
     {
-        if (j + 1 < n && heap_[j + 1] < heap_[j]) /*先比较两个子节点大小，选择最大的*/
+        if (j + 1 < n && heap_[j + 1] < heap_[j]) /*先比较两个子节点大小，选择最小的*/
             j++;
-        if (heap_[i] < heap_[j]) /*如果父节点大于子节点代表调整完毕，直接跳出函数*/
+        if (heap_[i] < heap_[j]) /*如果父节点小于子节点代表调整完毕，直接跳出函数*/
             break;
 
         SwapNode_(i, j);
