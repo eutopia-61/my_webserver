@@ -16,6 +16,7 @@
 
 #include "epoller.h"
 #include "../pool/threadpool.h"
+#include "../timer/heaptimer.h"
 #include "../http/httpconn.h"
 
 class WebServer
@@ -39,6 +40,7 @@ private:
 
     void SendError_(int fd, const char*info);   //给客户端返回错误消息
     void CloseConn_(HttpConn* client);
+    void ExternTime_(HttpConn* client);
 
     void OnRead_(HttpConn* client); /*将读的底层实现函数加入到线程池*/ 
     void OnWrite_(HttpConn* client);    /*将写的底层实现函数加入到线程池*/
@@ -49,7 +51,7 @@ private:
     static int SetFdNonblock(int fd);   //设置非阻塞模式
 
     int port_;
-    int timeoutMS_;     // epoll阻塞时间 MS
+    int timeoutMS_;     // 阻塞时间 MS
     bool openLinger_;   // 是否支持优雅断开
     bool isClose_;
     int listenFd_;
@@ -59,6 +61,7 @@ private:
     uint32_t listenEvent_;
     uint32_t connEvent_;
 
+    std::unique_ptr<HeapTimer> timer_;
     std::unique_ptr<ThreadPool> threadpool_;
     std::unique_ptr<Epoller> epoller_;
     std::unordered_map<int, HttpConn> users_;

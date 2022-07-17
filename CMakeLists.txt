@@ -40,6 +40,7 @@ set(LIBRARY_OUTPUT_PATH "${OUTPUT_PATH}/lib/")
 # Add header file include directories
 include_directories(
     ${cur_dir}/pool
+    ${cur_dir}/timer
     ${cur_dir}/server
     ${cur_dir}/buffer
     ${cur_dir}/http
@@ -48,10 +49,12 @@ include_directories(
 # Add block directories
 add_subdirectory(buffer)
 add_subdirectory(http)
+add_subdirectory(timer)
 add_subdirectory(server)
+
 
 # 生成可执行文件
 add_executable(server main.cpp)
 
 # 链接库文件
-target_link_libraries(server webserver httpconn buffer)
+target_link_libraries(server webserver httpconn timer buffer)

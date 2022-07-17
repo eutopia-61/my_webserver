@@ -6,9 +6,8 @@ using namespace std;
 WebServer::WebServer(
     int port, int trigMode, int timeoutMs, bool OptLinger,
     int connPoolNum, int threadNum) : port_(port), timeoutMS_(timeoutMs), openLinger_(OptLinger), isClose_(false),
-                                      threadpool_(new ThreadPool(threadNum)), epoller_(new Epoller())
+                                      timer_(new HeapTimer()), threadpool_(new ThreadPool(threadNum)), epoller_(new Epoller())
 {
-    printf("WebServer started\n");
     // 设置资源目录
     srcDir_ = getcwd(nullptr, 256);
     assert(srcDir_);
@@ -57,11 +56,15 @@ void WebServer::InitEventMode_(int trigMode)
 /*Epoll事件处理*/
 void WebServer::Start()
 {
-    int timeMS = 500; /* epoll wait timeout == -1 无事件将阻塞 */
+    int timeMS = -1; /* epoll wait timeout == -1 无事件将阻塞 */
     if (!isClose_)
         printf("=============== Server Started =================\n");
     while (!isClose_)
     {
+        if (timeoutMS_ > 0)
+        {
+            timeMS = timer_->getNextHandle();
+        }
         int eventCnt = epoller_->Wait(timeMS);
 
         // printf("eventCnt = %d\n", eventCnt);
@@ -124,8 +127,12 @@ void WebServer::CloseConn_(HttpConn *client)
 void WebServer::AddClient_(int fd, sockaddr_in addr)
 {
     assert(fd >= 0);
-
     users_[fd].init(fd, addr);
+    if (timeoutMS_ > 0)
+    {
+        timer_->addTimer(fd, timeoutMS_, std::bind(&WebServer::CloseConn_, this, &users_[fd]));
+    }
+
     epoller_->AddFd(fd, EPOLLIN | connEvent_);
     SetFdNonblock(fd);
     printf("Client[%d] in!\n", users_[fd].GetFd());
@@ -153,6 +160,7 @@ void WebServer::DealListen_()
 void WebServer::DealRead_(HttpConn *client)
 {
     assert(client);
+    ExternTime_(client);
     /*bind(callable, arg_list)*/
     threadpool_->AddTask(std::bind(&WebServer::OnRead_, this, client));
 }
@@ -160,9 +168,17 @@ void WebServer::DealRead_(HttpConn *client)
 void WebServer::DealWrite_(HttpConn *client)
 {
     assert(client);
+    ExternTime_(client);
     threadpool_->AddTask(std::bind(&WebServer::OnWrite_, this, client));
 }
 
+void WebServer::ExternTime_(HttpConn *client)
+{
+    assert(client);
+    if(timeoutMS_ > 0) {
+        timer_->update(client->GetFd(), timeoutMS_);
+    }
+}
 void WebServer::OnRead_(HttpConn *client)
 {
     assert(client);
