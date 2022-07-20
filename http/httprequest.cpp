@@ -75,7 +75,7 @@ bool HttpRequest::parse(Buffer &buff)
         buff.RetrieveUntil(lineEnd + 2);    //定位下一行
     }
 
-    printf("[%s], [%s], [%s]\n", method_.c_str(), path_.c_str(), version_.c_str());
+    LOG_DEBUG("[%s], [%s], [%s]", method_.c_str(), path_.c_str(), version_.c_str());
     return true;
 }
 
@@ -109,14 +109,11 @@ bool HttpRequest::ParseRequestLine_(const string &line)
         method_ = subMatch[1];
         path_ = subMatch[2];
         version_ = subMatch[3];
-
-        printf("[%s], [%s], [%s]\n", method_.c_str(), path_.c_str(), version_.c_str());
-
         state_ = HEADERS;
         return true;
     }
 
-    printf("RequestLine Error\n");
+    LOG_ERROR("RequestLine Error");
     return false;
 }
 
@@ -131,8 +128,6 @@ void HttpRequest::ParseHeader_(const string &line)
     {
         /*subMatch[1]:头部字段名，subMatch[2]：值*/
         header_[subMatch[1]] = subMatch[2];
-
-        printf("%s : %s\r\n", std::string(subMatch[1]).c_str(), std::string(subMatch[2]).c_str());
     }
     else
         state_ = BODY;
@@ -143,7 +138,7 @@ void HttpRequest::ParseBody_(const string &line)
     body_ = line;
     ParsePost_();
     state_ = FINISH;
-    printf("Body:%s, len:%ld\n", line.c_str(), line.size());
+    LOG_DEBUG("Body:%s, len:%ld", line.c_str(), line.size());
 }
 
 void HttpRequest::ParsePost_()
@@ -197,7 +192,7 @@ void HttpRequest::ParseFromUrlencoded_()
             value = body_.substr(j, i - j);
             j = i + 1;
             post_[key] = value;
-            printf("%s = %s", key.c_str(), value.c_str());
+            LOG_DEBUG("%s = %s", key.c_str(), value.c_str());
             break;
         default:
             break;

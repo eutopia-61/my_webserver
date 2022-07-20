@@ -5,6 +5,8 @@ project(${This} C CXX)
 
 set(cur_dir ${CMAKE_CURRENT_SOURCE_DIR})
 
+# SET(CMAKE_BUILD_TYPE "Debug")
+
 # 设置语言标准
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 14)
@@ -44,6 +46,7 @@ include_directories(
     ${cur_dir}/server
     ${cur_dir}/buffer
     ${cur_dir}/http
+    ${cur_dir}/log
 )
 
 # Add block directories
@@ -51,10 +54,11 @@ add_subdirectory(buffer)
 add_subdirectory(http)
 add_subdirectory(timer)
 add_subdirectory(server)
+add_subdirectory(log)
 
 
 # 生成可执行文件
 add_executable(server main.cpp)
 
 # 链接库文件
-target_link_libraries(server webserver httpconn timer buffer)
+target_link_libraries(server webserver httpconn timer buffer log)

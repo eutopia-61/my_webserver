@@ -12,6 +12,7 @@
 #include <atomic>
 
 #include "../buffer/buffer.h"
+#include "../log/log.h"
 #include "httprequest.h"
 #include "httpresponse.h"
 

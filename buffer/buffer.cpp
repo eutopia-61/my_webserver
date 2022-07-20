@@ -19,7 +19,6 @@ const char* Buffer::curReadPtr() const {
 }
 
 void Buffer::Retrieve(size_t len) {
-    // printf("len = %ld, %ld\n", len, ReadableBytes());
     assert(len <= ReadableBytes());
     readPos_ += len;
 }

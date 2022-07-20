@@ -1,8 +1,6 @@
 #include "epoller.h"
-#include "stdio.h"
 
 Epoller::Epoller(int maxEvent) : epollFd_(epoll_create(512)), events_(maxEvent){
-    printf("Epoller started!\n");
     assert(epollFd_ >= 0 && events_.size() > 0);
 }
 

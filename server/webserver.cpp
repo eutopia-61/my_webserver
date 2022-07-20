@@ -1,12 +1,11 @@
 #include "webserver.h"
-#include <iostream>
-
-using namespace std;
 
 WebServer::WebServer(
     int port, int trigMode, int timeoutMs, bool OptLinger,
-    int connPoolNum, int threadNum) : port_(port), timeoutMS_(timeoutMs), openLinger_(OptLinger), isClose_(false),
-                                      timer_(new HeapTimer()), threadpool_(new ThreadPool(threadNum)), epoller_(new Epoller())
+    int threadNum,
+    bool openLog, int logLevel, int logQueueSize) : 
+        port_(port), timeoutMS_(timeoutMs), openLinger_(OptLinger), isClose_(false),
+        timer_(new HeapTimer()), threadpool_(new ThreadPool(threadNum)), epoller_(new Epoller())
 {
     // 设置资源目录
     srcDir_ = getcwd(nullptr, 256);
@@ -18,6 +17,22 @@ WebServer::WebServer(
     InitEventMode_(trigMode);
     if (!InitSocket_())
         isClose_ = true;
+
+    if(openLog) {
+        Log::Instance()->init(logLevel, "./output/log", ".log", logQueueSize);
+        if(isClose_) {
+            LOG_ERROR("======================  Server init error! =================");
+        }
+        else {
+            LOG_INFO("====================== Server init =================");
+            LOG_INFO("Port: %d, OpenLinger: %s", port_, OptLinger ? "true" : "false");
+            LOG_INFO("Listen Mode: %s, OpenConn Mode: %s", (listenEvent_ & EPOLLET ? "ET" : "LT"),
+                                                            (connEvent_ & EPOLLET ? "ET" : "LT"));
+            LOG_INFO("LogSys level: %d", logLevel);
+            LOG_INFO("srcDir: %s", HttpConn::srcDir);
+            LOG_INFO("ThreadPool num: %d", threadNum);
+        }
+    }
 }
 
 WebServer::~WebServer()
@@ -58,7 +73,7 @@ void WebServer::Start()
 {
     int timeMS = -1; /* epoll wait timeout == -1 无事件将阻塞 */
     if (!isClose_)
-        printf("=============== Server Started =================\n");
+        LOG_INFO("=============== Server Started =================");
     while (!isClose_)
     {
         if (timeoutMS_ > 0)
@@ -66,8 +81,6 @@ void WebServer::Start()
             timeMS = timer_->getNextHandle();
         }
         int eventCnt = epoller_->Wait(timeMS);
-
-        // printf("eventCnt = %d\n", eventCnt);
 
         for (int i = 0; i < eventCnt; i++)
         {
@@ -82,7 +95,6 @@ void WebServer::Start()
             else if (events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR))
             {
                 // 对方断开、错误事件
-                printf("断开!\n");
                 assert(users_.count(fd) > 0);
                 CloseConn_(&users_[fd]);
             }
@@ -100,7 +112,7 @@ void WebServer::Start()
             }
             else
             {
-                printf("unexpected event\n");
+                LOG_ERROR("unexpected event");
             }
         }
     }
@@ -111,7 +123,7 @@ void WebServer::SendError_(int fd, const char *info)
     assert(fd > 0);
     int ret = send(fd, info, strlen(info), 0);
     if (ret < 0)
-        printf("send error to client[%d] error!\n", fd);
+        LOG_WARN("send error to client[%d] error!", fd);
 
     close(fd);
 }
@@ -119,7 +131,7 @@ void WebServer::SendError_(int fd, const char *info)
 void WebServer::CloseConn_(HttpConn *client)
 {
     assert(client);
-    printf("Client[%d] quit!\n", client->GetFd());
+    LOG_INFO("Client[%d] quit!", client->GetFd());
     epoller_->DelFd(client->GetFd());
     client->Close();
 }
@@ -135,7 +147,7 @@ void WebServer::AddClient_(int fd, sockaddr_in addr)
 
     epoller_->AddFd(fd, EPOLLIN | connEvent_);
     SetFdNonblock(fd);
-    printf("Client[%d] in!\n", users_[fd].GetFd());
+    LOG_INFO("Client[%d] in!", users_[fd].GetFd());
 }
 
 void WebServer::DealListen_()
@@ -150,7 +162,7 @@ void WebServer::DealListen_()
         else if (HttpConn::userCount >= MAX_FD)
         {
             SendError_(fd, "Server busy!\n");
-            printf("Clients is full!\n");
+            LOG_WARN("Clients is full!");
             return;
         }
         AddClient_(fd, addr);
@@ -185,7 +197,7 @@ void WebServer::OnRead_(HttpConn *client)
     int ret = -1;
     int readError = 0;
     ret = client->read(&readError);
-    printf("Read ret: %d\n", ret);
+    // printf("Read ret: %d\n", ret);
     if (ret <= 0 && readError != EAGAIN)
     {
         CloseConn_(client);
@@ -241,7 +253,7 @@ bool WebServer::InitSocket_()
     struct sockaddr_in addr;
     if (port_ > 65535 || port_ < 1024)
     {
-        printf("Port:%d error!\n", port_);
+        LOG_ERROR("Port:%d error!", port_);
         return false;
     }
 
@@ -252,7 +264,7 @@ bool WebServer::InitSocket_()
     listenFd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (listenFd_ < 0)
     {
-        printf("Create socket error!\n");
+        LOG_ERROR("Create socket error!");
         return false;
     }
 
@@ -268,7 +280,7 @@ bool WebServer::InitSocket_()
     if (ret < 0)
     {
         close(listenFd_);
-        printf("Init linger error!\n");
+        LOG_ERROR("Init linger error!");
         return false;
     }
 
@@ -278,7 +290,7 @@ bool WebServer::InitSocket_()
     ret = setsockopt(listenFd_, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
     if (ret < 0)
     {
-        printf("set socket setsockopt error!\n");
+        LOG_ERROR("set socket setsockopt error!");
         close(listenFd_);
         return false;
     }
@@ -286,7 +298,7 @@ bool WebServer::InitSocket_()
     ret = bind(listenFd_, (struct sockaddr *)&addr, sizeof(addr));
     if (ret < 0)
     {
-        printf("Bind Port:%d error!\n", port_);
+        LOG_ERROR("Bind Port:%d error!", port_);
         close(listenFd_);
         return false;
     }
@@ -294,7 +306,7 @@ bool WebServer::InitSocket_()
     ret = listen(listenFd_, 6);
     if (ret < 0)
     {
-        printf("Listen Port:%d error!\n", port_);
+        LOG_ERROR("Listen Port:%d error!", port_);
         close(listenFd_);
         return false;
     }
@@ -302,13 +314,13 @@ bool WebServer::InitSocket_()
     ret = epoller_->AddFd(listenFd_, listenEvent_ | EPOLLIN);
     if (ret == 0)
     {
-        printf("Add Listen error!\n");
+        LOG_ERROR("Add Listen error!");
         close(listenFd_);
         return false;
     }
     SetFdNonblock(listenFd_);
 
-    printf("Server port: %d\n", port_);
+    LOG_INFO("Server port: %d", port_);
     return true;
 }
 

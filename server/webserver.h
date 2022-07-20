@@ -18,12 +18,14 @@
 #include "../pool/threadpool.h"
 #include "../timer/heaptimer.h"
 #include "../http/httpconn.h"
+#include "../log/log.h"
 
 class WebServer
 {
 public:
-    WebServer(int port, int trigMode, int timeoutMs, 
-            bool OptLinger, int connPoolNum, int threadNum);
+    WebServer(int port, int trigMode, int timeoutMs, bool OptLinger, 
+            int threadNum,
+            bool openLog, int LogLevel, int logQueueSize);
 
     ~WebServer();
 

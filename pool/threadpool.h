@@ -16,7 +16,6 @@ public:
         assert(threadCount > 0);
         for (size_t i = 0; i < threadCount; ++i)
         {
-            printf("Thread pool %ld create\n", i);
             // 匿名函数 [capture](parameters)->return-type{body}
             // unique_lock 实现自动加解锁
             // unique_lock比lock_guard占用空间和速度慢一些，因为其要维护mutex的状态。
@@ -40,7 +39,6 @@ public:
                 } }).detach();
                 
         }
-        printf("ThreadPool end!\r\n");
     }
 
     ThreadPool() = default;

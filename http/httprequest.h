@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include "../buffer/buffer.h"
+#include "../log/log.h"
 
 class HttpRequest
 {
