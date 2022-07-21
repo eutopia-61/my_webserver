@@ -237,7 +237,7 @@ bool  HttpRequest::UserVerify(const string &name, const string &pwd, bool isLogi
 
     res = mysql_store_result(sql);
     j = mysql_num_fields(res);  /*获得表的列数*/
-    fields = mysql_fetch_fields(res);   /*返回结果集中代表字段（列）的对象的数组*/
+    fields = mysql_fetch_fields(res);   /*返回采用 MYSQL_FIELD 结构的结果集的列*/
 
     while(MYSQL_ROW row = mysql_fetch_row(res)) {   //mysql_fetch_row取结果集的下一行
         LOG_DEBUG("MYSQL ROW: %s %s", row[0], row[1]);
