@@ -12,7 +12,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lpthread -O0 -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O0 -pthread -Wall -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O0 -pthread -Wall -g -I/usr/include/mysql -L/usr/lib/mysql -lmysqlclient")
 
 # 设置版本信息
 set(META_PROJECT_NAME ${This})
@@ -47,6 +47,7 @@ include_directories(
     ${cur_dir}/buffer
     ${cur_dir}/http
     ${cur_dir}/log
+    /usr/include/mysql
 )
 
 # Add block directories
@@ -55,10 +56,11 @@ add_subdirectory(http)
 add_subdirectory(timer)
 add_subdirectory(server)
 add_subdirectory(log)
+add_subdirectory(pool)
 
 
 # 生成可执行文件
 add_executable(server main.cpp)
 
 # 链接库文件
-target_link_libraries(server webserver httpconn timer buffer log)
+target_link_libraries(server webserver httpconn timer buffer log sqlconnpool mysqlclient)

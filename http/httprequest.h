@@ -9,6 +9,8 @@
 
 #include "../buffer/buffer.h"
 #include "../log/log.h"
+#include "../pool/sqlconnpool.h"
+#include "../pool/sqlconnRAII.h"
 
 class HttpRequest
 {
@@ -54,10 +56,12 @@ private:
     void ParsePost_();
     void ParseFromUrlencoded_();
 
+    static bool UserVerify(const std::string& name, const std::string& pwd, bool isLogin);
+
     PARSE_STATE state_;
     std::string method_, path_, version_, body_;
     std::unordered_map<std::string, std::string> header_;
-    std::unordered_map<std::string, std::string> post_;
+    std::unordered_map<std::string, std::string> post_;   /*post请求*/
 
     static const std::unordered_set<std::string> DEFAULT_HTML;
     static const std::unordered_map<std::string, int> DEFAULT_HTML_TAG;

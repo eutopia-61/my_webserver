@@ -16,6 +16,8 @@
 
 #include "epoller.h"
 #include "../pool/threadpool.h"
+#include "../pool/sqlconnpool.h"
+#include "../pool/sqlconnRAII.h"
 #include "../timer/heaptimer.h"
 #include "../http/httpconn.h"
 #include "../log/log.h"
@@ -24,7 +26,8 @@ class WebServer
 {
 public:
     WebServer(int port, int trigMode, int timeoutMs, bool OptLinger, 
-            int threadNum,
+            int sqlPort, const char* sqlUser, const char* sqlPwd,
+            const char* dbName, int connPoolNum, int threadNum,
             bool openLog, int LogLevel, int logQueueSize);
 
     ~WebServer();

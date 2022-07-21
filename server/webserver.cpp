@@ -2,7 +2,8 @@
 
 WebServer::WebServer(
     int port, int trigMode, int timeoutMs, bool OptLinger,
-    int threadNum,
+    int sqlPort, const char* sqlUser, const char* sqlPwd,
+    const char* dbName, int connPoolNum, int threadNum,
     bool openLog, int logLevel, int logQueueSize) : 
         port_(port), timeoutMS_(timeoutMs), openLinger_(OptLinger), isClose_(false),
         timer_(new HeapTimer()), threadpool_(new ThreadPool(threadNum)), epoller_(new Epoller())
@@ -13,6 +14,7 @@ WebServer::WebServer(
     strncat(srcDir_, "/resources", 16);
     HttpConn::userCount = 0;
     HttpConn::srcDir = srcDir_;
+    SqlConnPool::Instance()->Init("localhost", sqlPort, sqlUser, sqlPwd, dbName, connPoolNum);
 
     InitEventMode_(trigMode);
     if (!InitSocket_())
@@ -30,7 +32,7 @@ WebServer::WebServer(
                                                             (connEvent_ & EPOLLET ? "ET" : "LT"));
             LOG_INFO("LogSys level: %d", logLevel);
             LOG_INFO("srcDir: %s", HttpConn::srcDir);
-            LOG_INFO("ThreadPool num: %d", threadNum);
+            LOG_INFO("SqlConnPool num: %d, ThreadPool num: %d", connPoolNum, threadNum);
         }
     }
 }
@@ -40,6 +42,7 @@ WebServer::~WebServer()
     close(listenFd_);
     isClose_ = true;
     free(srcDir_);
+    SqlConnPool::Instance()->ClosePool();
 }
 
 void WebServer::InitEventMode_(int trigMode)
